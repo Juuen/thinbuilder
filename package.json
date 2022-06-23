@@ -8,6 +8,14 @@
     },
     "author": "Juuuen",
     "license": "ISC",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Juuen/thinbuilder.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Juuen/thinbuilder/issues"
+    },
+    "homepage": "https://github.com/Juuen/thinbuilder#readme",
     "dependencies": {
         "express": "^4.18.1"
     }
