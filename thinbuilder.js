@@ -9,53 +9,41 @@ const path = require("path");
  * @return {Function}
  */
 module.exports = function (options) {
+    console.log("==========thinbuilder is mounting==========");
     options = options || {};
     let alias = options.alias || "thinbuilder";
 
     // Default compile callback
     options.compile =
         options.compile ||
-        function () {
-            return thinbuilder;
+        async function () {
+            return await thinbuilder;
         };
 
-    return function thinbuilder(req, res, next) {
-        let jspath = req.path;
+    return async function thinbuilder(req, res, next) {
+        let jspath = req.path,
+            thinConfig = {};
+
         // 限定请求方式
-        if (req.method !== "GET" && req.method !== "HEAD") {
-            return next();
-        }
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+
         // 限定js文件
-        if (!/\.js$/i.test(jspath)) {
-            return next();
-        }
+        if (!/\.js$/i.test(jspath)) return next();
+
         // 兼容早期jsbuilder文件夹，以及自定义文件夹
         let aliasReg = new RegExp(`jsbuilder|${alias}`, "gi");
-        if (!aliasReg.test(jspath)) {
-            return next();
-        }
+        if (!aliasReg.test(jspath)) return next();
 
-        jspath = jspath.substring(1); // 移除起始斜杠，不然会引起express路径解析错误
-        jspath = jspath.replace(/\.js$/i, ""); // 获取需要打包的文件夹
+        thinConfig = await loadConfig();
 
-        // 验证一下是否为文件夹，否则当做文件处理，可以解决引用单个thinjs文件情况。
-        access(jspath, constants.F_OK | constants.R_OK, async (err) => {
-            if (!err) {
-                try {
-                    await fileBuilder({ jspath, res });
-                } catch (builderErr) {
-                    console.error("builderErr: ", builderErr);
-                }
-                res.end();
-            } else {
-                jspath = path.resolve(__dirname, `${jspath}.js`);
-                res.type(".js");
-                res.sendFile(jspath, (e) => {
-                    e && console.error(e);
-                    return next();
-                });
-            }
-        });
+        // 移除起始斜杠，不然会引起express路径解析错误
+        jspath = jspath.substring(1);
+
+        let mode = thinConfig.builder?.mode?.toLowerCase() || "folder";
+        if (!["folder", "file"].includes(mode)) return next();
+
+        let action = actions().get(mode);
+        action.call(this, { res, next, jspath, mode });
     };
 };
 
@@ -67,6 +55,8 @@ module.exports = function (options) {
  */
 async function fileBuilder(p) {
     p.res.type(".js");
+    let subFolers = [];
+    console.log(p.jspath);
     let files = await readdir(p.jspath, { withFileTypes: true });
     for (const file of files) {
         let fullname = `${p.jspath}/${file.name}`;
@@ -81,3 +71,44 @@ async function fileBuilder(p) {
         }
     }
 }
+
+async function loadConfig() {
+    let thinConfig = await readFile("thin.config.json");
+    return JSON.parse(thinConfig);
+}
+
+function actions() {
+    const pipe_folder = async function (p) {
+        let builderDir = p.jspath.replace(/\.js$/i, "");
+        try {
+            await fileBuilder({ jspath: builderDir, res: p.res, next: p.next });
+            return p.res.end();
+        } catch (e) {
+            e && console.error(e);
+            // 此处逻辑是为了避免递归异常导致进入渲染单独文件管道
+            access(builderDir, constants.F_OK | constants.R_OK, (err) => {
+                if (err && p.mode === builderMode.folder) {
+                    return pipe_file(p);
+                } else return p.res.end();
+            });
+        }
+    };
+
+    const pipe_file = function (p) {
+        p.res.type(".js");
+        p.res.sendFile(path.join(__dirname, p.jspath), (e) => {
+            e && console.error(e);
+            return p.mode === builderMode.file ? pipe_folder(p) : p.next();
+        });
+    };
+
+    return new Map([
+        ["folder", pipe_folder],
+        ["file", pipe_file]
+    ]);
+}
+
+const builderMode = Object.freeze({
+    folder: "folder",
+    file: "file"
+});

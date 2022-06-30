@@ -1,0 +1,3 @@
+{
+    "builder": { "priority": [{ "path": "test", "files": ["y.js"] }], "mode": "folder" }
+}

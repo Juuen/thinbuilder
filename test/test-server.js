@@ -2,8 +2,10 @@ const express = require("express");
 const app = express();
 const port = 3000;
 const thinbuilder = require("../thinbuilder");
+const path = require("path");
 
-app.use(thinbuilder());
+app.use(express.static(path.join(__dirname, "public")));
+app.use(thinbuilder({ alias: "thinbuilder" }));
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
