@@ -18,12 +18,11 @@ module.exports = function (options) {
         thinConfig = { ...options, ...data };
         thinConfig.alias ||= "thinbuilder"; // 初始化thin文件夹名
         thinConfig.debug ??= false; // 初始化调试开关
-
-        if (err && thinConfig.debug) console.error("config loading: ", err);
-
         thinConfig.compile ||= function () {
             return thinbuilder;
         };
+
+        if (err && thinConfig.debug) console.error("thinConfig loading: ", err);
     });
 
     return function thinbuilder(req, res, next) {
@@ -43,7 +42,7 @@ module.exports = function (options) {
         if (!["folder", "file"].includes(mode)) return next();
 
         let action = actions().get(mode);
-        action.call(this, { res, next, jspath, mode, debug: thinConfig.debug });
+        action.call(this, { res, next, ...thinConfig, jspath, mode });
     };
 };
 
@@ -54,18 +53,33 @@ module.exports = function (options) {
  * res:     http response
  */
 async function fileBuilder(p) {
-    let subFolers = [];
-    console.log(p.jspath);
-    let files = await readdir(p.jspath, { withFileTypes: true });
+    let subFolers = [],
+        files = await readdir(p.jspath, { withFileTypes: true }),
+        thinFolder_index = p.jspath.indexOf(p.alias),
+        preBuilderPath = p.jspath.substring(thinFolder_index + p.alias.length + 1),
+        preFolder = (p.builder?.priority || []).filter((item) => {
+            if (item.path.startsWith("/")) item.path = item.path.substring(0);
+            return item.path === preBuilderPath;
+        });
+
+    // 预配置文件打包
+    for (const item of preFolder[0]?.files || []) {
+        let fullname = `${p.jspath}/${item}`;
+        const data = await readFile(fullname);
+        p.res.write("\n\n// " + fullname + "\n\n");
+        p.res.write(data);
+    }
+
+    // 正常打包
     for (const file of files) {
         let fullname = `${p.jspath}/${file.name}`;
         if (file.isFile()) {
+            if ((preFolder[0]?.files || []).some((item, index) => item === file.name)) continue;
             const data = await readFile(fullname);
-            // p.res.type(".js");
             p.res.write("\n\n// " + fullname + "\n\n");
             p.res.write(data);
         } else if (file.isDirectory()) {
-            await fileBuilder({ jspath: `${p.jspath}/${file.name}`, res: p.res });
+            await fileBuilder({ jspath: `${p.jspath}/${file.name}`, res: p.res, next: p.next, builder: p.builder, alias: p.alias });
         } else {
             continue;
         }
@@ -82,16 +96,16 @@ async function loadConfig(p, callback) {
     } catch (e) {
         err = e;
     }
-    callback && callback(err, thinConfig);
+    callback && callback(err, thinConfig ?? {});
 }
 
-// 打包管道
+// 打包任务管道
 function actions() {
     const pipe_folder = async function (p) {
         let builderDir = p.jspath.replace(/\.js$/i, "");
         try {
             p.res.type(".js");
-            await fileBuilder({ jspath: builderDir, res: p.res, next: p.next });
+            await fileBuilder({ jspath: builderDir, res: p.res, next: p.next, builder: p.builder, alias: p.alias });
             return p.res.end();
         } catch (e) {
             if (e && p.debug) console.error("folder pipe: ", e);
