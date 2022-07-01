@@ -2,6 +2,7 @@
 const fs = require("fs");
 const { readdir, readFile } = require("fs/promises");
 const path = require("path");
+const { minify } = require("terser");
 
 /**
  *  thinbuilder
@@ -18,6 +19,8 @@ module.exports = function (options) {
         thinConfig = { ...options, ...data };
         thinConfig.alias ||= "thinbuilder"; // 初始化thin文件夹名
         thinConfig.debug ??= false; // 初始化调试开关
+        thinConfig.minify ??= false; // 初始化文件压缩开关
+        thinConfig.cachetime ??= 600; // 初始化缓存时间
         thinConfig.compile ||= function () {
             return thinbuilder;
         };
@@ -58,28 +61,24 @@ async function fileBuilder(p) {
         thinFolder_index = p.jspath.indexOf(p.alias),
         preBuilderPath = p.jspath.substring(thinFolder_index + p.alias.length + 1),
         preFolder = (p.builder?.priority || []).filter((item) => {
-            if (item.path.startsWith("/")) item.path = item.path.substring(0);
+            if (item.path.startsWith("/")) item.path = item.path.substring(1);
             return item.path === preBuilderPath;
         });
 
     // 预配置文件打包
     for (const item of preFolder[0]?.files || []) {
         let fullname = `${p.jspath}/${item}`;
-        const data = await readFile(fullname);
-        p.res.write("\n\n// " + fullname + "\n\n");
-        p.res.write(data);
+        await outputContent({ ...p, fullname });
     }
 
     // 正常打包
     for (const file of files) {
-        let fullname = `${p.jspath}/${file.name}`;
         if (file.isFile()) {
             if ((preFolder[0]?.files || []).some((item, index) => item === file.name)) continue;
-            const data = await readFile(fullname);
-            p.res.write("\n\n// " + fullname + "\n\n");
-            p.res.write(data);
+            let fullname = `${p.jspath}/${file.name}`;
+            await outputContent({ ...p, fullname });
         } else if (file.isDirectory()) {
-            await fileBuilder({ jspath: `${p.jspath}/${file.name}`, res: p.res, next: p.next, builder: p.builder, alias: p.alias });
+            await fileBuilder({ ...p, jspath: `${p.jspath}/${file.name}` });
         } else {
             continue;
         }
@@ -87,16 +86,21 @@ async function fileBuilder(p) {
 }
 
 // 加载配置文件
-async function loadConfig(p, callback) {
+function loadConfig(configfile, callback) {
     let thinConfig = {},
-        err;
-    try {
-        thinConfig = await readFile(p);
-        thinConfig = JSON.parse(thinConfig);
-    } catch (e) {
-        err = e;
-    }
-    callback && callback(err, thinConfig ?? {});
+        configErr;
+
+    fs.access(configfile, fs.constants.F_OK | fs.constants.R_OK, async (err) => {
+        if (!err) {
+            try {
+                thinConfig = await readFile(configfile);
+                thinConfig = JSON.parse(thinConfig);
+            } catch (e) {
+                configErr = e;
+            }
+        }
+        callback && callback(configErr, thinConfig ?? {});
+    });
 }
 
 // 打包任务管道
@@ -105,7 +109,8 @@ function actions() {
         let builderDir = p.jspath.replace(/\.js$/i, "");
         try {
             p.res.type(".js");
-            await fileBuilder({ jspath: builderDir, res: p.res, next: p.next, builder: p.builder, alias: p.alias });
+            p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
+            await fileBuilder({ ...p, jspath: builderDir });
             return p.res.end();
         } catch (e) {
             if (e && p.debug) console.error("folder pipe: ", e);
@@ -120,7 +125,7 @@ function actions() {
 
     const pipe_file = function (p) {
         p.res.type(".js");
-        p.res.sendFile(path.join(__dirname, p.jspath), (e) => {
+        p.res.sendFile(path.join(__dirname, p.jspath), { maxAge: p.cachetime * 1000 }, (e) => {
             if (e && p.debug) console.error("file pipe: ", e);
             return p.mode === builderMode.file ? pipe_folder(p) : p.next();
         });
@@ -136,3 +141,17 @@ const builderMode = Object.freeze({
     folder: "folder",
     file: "file"
 });
+
+/**
+ * 向浏览器输出脚本文件内容
+ * @param {Object} p
+ */
+async function outputContent(p) {
+    let data = await readFile(p.fullname);
+    if (p.minify) {
+        data = await minify(data.toString(), {});
+        data = data.code;
+    }
+    p.res.write("\n// " + p.fullname + "\n");
+    p.res.write(data);
+}

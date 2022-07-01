@@ -5,7 +5,7 @@ const thinbuilder = require("../thinbuilder");
 const path = require("path");
 
 app.use(express.static(path.join(__dirname, "public")));
-app.use(thinbuilder());
+app.use(thinbuilder({ alias: "thinbuilder", builder: { priority: [{ path: "/test", files: ["y.js", "w.js"] }], mode: "folder" }, debug: true, minify: false }));
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
