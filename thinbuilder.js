@@ -1,5 +1,5 @@
 "use strict";
-const { constants, access } = require("fs");
+const fs = require("fs");
 const { readdir, readFile } = require("fs/promises");
 const path = require("path");
 
@@ -10,20 +10,24 @@ const path = require("path");
  */
 module.exports = function (options) {
     console.log("==========thinbuilder is mounting==========");
-    options = options || {};
-    let alias = options.alias || "thinbuilder";
+    options ||= {};
+    let thinConfig = {};
 
-    // Default compile callback
-    options.compile =
-        options.compile ||
-        async function () {
-            return await thinbuilder;
+    // 加载THIN配置
+    loadConfig("thin.config.json", (err, data) => {
+        thinConfig = { ...options, ...data };
+        thinConfig.alias ||= "thinbuilder"; // 初始化thin文件夹名
+        thinConfig.debug ??= false; // 初始化调试开关
+
+        if (err && thinConfig.debug) console.error("config loading: ", err);
+
+        thinConfig.compile ||= function () {
+            return thinbuilder;
         };
+    });
 
-    return async function thinbuilder(req, res, next) {
-        let jspath = req.path,
-            thinConfig = {};
-
+    return function thinbuilder(req, res, next) {
+        let jspath = req.path.substring(1);
         // 限定请求方式
         if (req.method !== "GET" && req.method !== "HEAD") return next();
 
@@ -31,19 +35,15 @@ module.exports = function (options) {
         if (!/\.js$/i.test(jspath)) return next();
 
         // 兼容早期jsbuilder文件夹，以及自定义文件夹
-        let aliasReg = new RegExp(`jsbuilder|${alias}`, "gi");
+        let aliasReg = new RegExp(`jsbuilder|${thinConfig.alias}`, "gi");
         if (!aliasReg.test(jspath)) return next();
 
-        thinConfig = await loadConfig();
-
-        // 移除起始斜杠，不然会引起express路径解析错误
-        jspath = jspath.substring(1);
-
+        // 检查编译对象优先项
         let mode = thinConfig.builder?.mode?.toLowerCase() || "folder";
         if (!["folder", "file"].includes(mode)) return next();
 
         let action = actions().get(mode);
-        action.call(this, { res, next, jspath, mode });
+        action.call(this, { res, next, jspath, mode, debug: thinConfig.debug });
     };
 };
 
@@ -54,7 +54,6 @@ module.exports = function (options) {
  * res:     http response
  */
 async function fileBuilder(p) {
-    p.res.type(".js");
     let subFolers = [];
     console.log(p.jspath);
     let files = await readdir(p.jspath, { withFileTypes: true });
@@ -62,6 +61,7 @@ async function fileBuilder(p) {
         let fullname = `${p.jspath}/${file.name}`;
         if (file.isFile()) {
             const data = await readFile(fullname);
+            // p.res.type(".js");
             p.res.write("\n\n// " + fullname + "\n\n");
             p.res.write(data);
         } else if (file.isDirectory()) {
@@ -72,21 +72,31 @@ async function fileBuilder(p) {
     }
 }
 
-async function loadConfig() {
-    let thinConfig = await readFile("thin.config.json");
-    return JSON.parse(thinConfig);
+// 加载配置文件
+async function loadConfig(p, callback) {
+    let thinConfig = {},
+        err;
+    try {
+        thinConfig = await readFile(p);
+        thinConfig = JSON.parse(thinConfig);
+    } catch (e) {
+        err = e;
+    }
+    callback && callback(err, thinConfig);
 }
 
+// 打包管道
 function actions() {
     const pipe_folder = async function (p) {
         let builderDir = p.jspath.replace(/\.js$/i, "");
         try {
+            p.res.type(".js");
             await fileBuilder({ jspath: builderDir, res: p.res, next: p.next });
             return p.res.end();
         } catch (e) {
-            e && console.error(e);
-            // 此处逻辑是为了避免递归异常导致进入渲染单独文件管道
-            access(builderDir, constants.F_OK | constants.R_OK, (err) => {
+            if (e && p.debug) console.error("folder pipe: ", e);
+            // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
+            fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
                 if (err && p.mode === builderMode.folder) {
                     return pipe_file(p);
                 } else return p.res.end();
@@ -97,7 +107,7 @@ function actions() {
     const pipe_file = function (p) {
         p.res.type(".js");
         p.res.sendFile(path.join(__dirname, p.jspath), (e) => {
-            e && console.error(e);
+            if (e && p.debug) console.error("file pipe: ", e);
             return p.mode === builderMode.file ? pipe_folder(p) : p.next();
         });
     };
