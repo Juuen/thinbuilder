@@ -10,9 +10,8 @@ const { minify } = require("terser");
  * @return {Function}
  */
 module.exports = function (options) {
-    console.log("==========thinbuilder is mounting==========");
-    options ||= {};
     let thinConfig = {};
+    options ||= {};
 
     // 加载THIN配置
     loadConfig("thin.config.json", (err, data) => {
@@ -26,6 +25,7 @@ module.exports = function (options) {
         };
 
         if (err && thinConfig.debug) console.error("thinConfig loading: ", err);
+        console.log("==========thinbuilder is mounted==========");
     });
 
     return function thinbuilder(req, res, next) {
@@ -56,26 +56,26 @@ module.exports = function (options) {
  * res:     http response
  */
 async function fileBuilder(p) {
-    let subFolers = [],
-        files = await readdir(p.jspath, { withFileTypes: true }),
-        thinFolder_index = p.jspath.indexOf(p.alias),
-        preBuilderPath = p.jspath.substring(thinFolder_index + p.alias.length + 1),
-        preFolder = (p.builder?.priority || []).filter((item) => {
-            if (item.path.startsWith("/")) item.path = item.path.substring(1);
-            return item.path === preBuilderPath;
-        });
+    let files = await readdir(p.jspath, { withFileTypes: true }),
+        preBuilderPath = p.jspath.substring(p.jspath.indexOf(p.alias) + p.alias.length + 1),
+        preFolder = (p.builder?.priority || []).filter((item) => item.path.replace(/^\//, "") === preBuilderPath); // 含有预编译文件的文件夹
 
-    // 预配置文件打包
-    for (const item of preFolder[0]?.files || []) {
+    // 子目录文件缓存
+    p.fileFilters ||= [];
+
+    // 预编译文件优先输出
+    for (let item of preFolder[0]?.files || []) {
+        item = item.replace(/^\//, "");
+        if (item.includes("/") && !p.fileFilters.includes(item)) p.fileFilters.push(item);
         let fullname = `${p.jspath}/${item}`;
         await outputContent({ ...p, fullname });
     }
 
-    // 正常打包
+    // 正常输出文件
     for (const file of files) {
         if (file.isFile()) {
-            if ((preFolder[0]?.files || []).some((item, index) => item === file.name)) continue;
             let fullname = `${p.jspath}/${file.name}`;
+            if ([...new Set([...(preFolder[0]?.files || []), ...p.fileFilters])].some((item, index) => fullname.endsWith(item))) continue;
             await outputContent({ ...p, fullname });
         } else if (file.isDirectory()) {
             await fileBuilder({ ...p, jspath: `${p.jspath}/${file.name}` });
@@ -116,9 +116,7 @@ function actions() {
             if (e && p.debug) console.error("folder pipe: ", e);
             // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
             fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
-                if (err && p.mode === builderMode.folder) {
-                    return pipe_file(p);
-                } else return p.res.end();
+                return err && p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
             });
         }
     };
