@@ -1,1 +1,3 @@
-console.log("This is a subfolder tester!");
+function subtest() {
+    console.log("This is a subfolder tester!");
+}

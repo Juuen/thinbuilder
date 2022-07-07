@@ -24,8 +24,9 @@ module.exports = function (options) {
             return thinbuilder;
         };
 
-        if (err && thinConfig.debug) console.error("thinConfig loading: ", err);
-        console.log("==========thinbuilder is mounted==========");
+        if (process.env.NODE_ENV === "production") thinConfig.debug = false;
+        if (err && thinConfig.debug) console.error("[thinbuilder] thinConfig loading: ", err);
+        console.log("[thinbuilder] thinbuilder is mounted.");
     });
 
     return function thinbuilder(req, res, next) {
@@ -52,8 +53,6 @@ module.exports = function (options) {
 /**
  * JS文件合并处理器
  * @param {Object} p
- * jspath:  打包路径
- * res:     http response
  */
 async function fileBuilder(p) {
     let files = await readdir(p.jspath, { withFileTypes: true }),
@@ -85,7 +84,11 @@ async function fileBuilder(p) {
     }
 }
 
-// 加载配置文件
+/**
+ * 加载配置文件
+ * @param {String} configfile
+ * @param {Function} callback
+ */
 function loadConfig(configfile, callback) {
     let thinConfig = {},
         configErr;
@@ -103,7 +106,10 @@ function loadConfig(configfile, callback) {
     });
 }
 
-// 打包任务管道
+/**
+ * Builder任务管道
+ * @returns {Map}
+ */
 function actions() {
     const pipe_folder = async function (p) {
         let builderDir = p.jspath.replace(/\.js$/i, "");
@@ -113,7 +119,7 @@ function actions() {
             await fileBuilder({ ...p, jspath: builderDir });
             return p.res.end();
         } catch (e) {
-            if (e && p.debug) console.error("folder pipe: ", e);
+            if (e && p.debug) console.error("[thinbuilder] folder pipe: ", e);
             // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
             fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
                 return err && p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
@@ -124,7 +130,7 @@ function actions() {
     const pipe_file = function (p) {
         p.res.type(".js");
         p.res.sendFile(path.join(__dirname, p.jspath), { maxAge: p.cachetime * 1000 }, (e) => {
-            if (e && p.debug) console.error("file pipe: ", e);
+            if (e && p.debug) console.error("[thinbuilder] file pipe: ", e);
             return p.mode === builderMode.file ? pipe_folder(p) : p.next();
         });
     };
@@ -145,11 +151,27 @@ const builderMode = Object.freeze({
  * @param {Object} p
  */
 async function outputContent(p) {
-    let data = await readFile(p.fullname);
+    let data = (await readFile(p.fullname))?.toString() ?? "";
+    if (!p.debug) data = dataPreCheck(data);
     if (p.minify) {
-        data = await minify(data.toString(), {});
+        data = await minify(data, {});
         data = data.code;
     }
-    p.res.write("\n// " + p.fullname + "\n");
+    p.debug && p.res.write(`\n// ${p.fullname}\n`);
     p.res.write(data);
+}
+
+/**
+ * 预处理脚本文件，清除非必要性信息、敏感信息。
+ * @param {String} d
+ * @returns {String}
+ */
+function dataPreCheck(d) {
+    if (!d) return d;
+    d = d.replace(/\/\/.+|\/\*[\s\S]+?\*\//g, ""); // 移除注释
+    d = d.replace(/console\.log\([\s\S]*?\);?/g, ""); // 移除console.log | 但保留console.error
+    d = d.replace(/\r/g, ""); // 移除回车符
+    d = d.replace(/\n{2,}/g, "\n"); // 合并换行符
+    d = d.trim().concat("\n");
+    return d;
 }
