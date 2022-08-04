@@ -1,7 +1,7 @@
 "use strict";
 const fs = require("fs");
-const { readdir, readFile } = require("fs/promises");
 const path = require("path");
+const { readdir, readFile } = require("fs/promises");
 const { minify } = require("terser");
 
 /**
@@ -24,7 +24,7 @@ module.exports = function (options) {
             return thinbuilder;
         };
 
-        if (process.env.NODE_ENV === "production") thinConfig.debug = false;
+        if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
         if (err && thinConfig.debug) console.error("[thinbuilder] thinConfig loading: ", err);
         console.log("[thinbuilder] thinbuilder is mounted.");
     });
@@ -42,7 +42,7 @@ module.exports = function (options) {
         if (!aliasReg.test(jspath)) return next();
 
         // 检查编译对象优先项
-        let mode = thinConfig.builder?.mode?.toLowerCase() || "folder";
+        let mode = thinConfig.mode?.toLowerCase() || "folder";
         if (!["folder", "file"].includes(mode)) return next();
 
         let action = actions().get(mode);
@@ -57,7 +57,7 @@ module.exports = function (options) {
 async function fileBuilder(p) {
     let files = await readdir(p.jspath, { withFileTypes: true }),
         preBuilderPath = p.jspath.substring(p.jspath.indexOf(p.alias) + p.alias.length + 1),
-        preFolder = (p.builder?.priority || []).filter((item) => item.path.replace(/^\//, "") === preBuilderPath); // 含有预编译文件的文件夹
+        preFolder = (p.priority || []).filter((item) => item.path.replace(/^\//, "") === preBuilderPath); // 含有预编译文件的文件夹
 
     // 子目录文件缓存
     p.fileFilters ||= [];
@@ -154,7 +154,7 @@ async function outputContent(p) {
     let data = (await readFile(p.fullname))?.toString() ?? "";
     if (!p.debug) data = dataPreCheck(data);
     if (p.minify) {
-        data = await minify(data, {});
+        data = await minify(data, {}); // 参数待完善
         data = data.code;
     }
     p.debug && p.res.write(`\n// ${p.fullname}\n`);
@@ -173,5 +173,6 @@ function dataPreCheck(d) {
     d = d.replace(/\r/g, ""); // 移除回车符
     d = d.replace(/\n{2,}/g, "\n"); // 合并换行符
     d = d.trim().concat("\n");
+    d = d.endsWith(";") ? d : d.concat(";");
     return d;
 }

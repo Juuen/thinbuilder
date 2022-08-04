@@ -23,6 +23,8 @@ app.use(thinbuilder());
 ......
 ```
 
+
+
 #### 修改配置
 
 我们提供了两种方式修改 `thinbuilder` 编译属性：参数配置和文件配置。
@@ -40,7 +42,8 @@ app.use(thinbuilder());
     ```json
     {
         "alias": "thinbuilder",
-        "builder": { "priority": [{ "path": "test", "files": ["y.js","subfolder/s.js"] }], "mode": "folder" },
+        "priority": [{ "path": "test", "files": ["y.js","subfolder/s.js"] }], 
+        "mode": "folder" ,
         "debug": true,
         "minify": true,
         "cachetime": 600
@@ -49,17 +52,76 @@ app.use(thinbuilder());
 
 3. **参数说明**
 
-    ```console
-    alias			存放thinjs顶层文件夹，默认为thinbuilder。
-    debug			开启调试日志，默认为false。
-    builder/mode		打包thinjs优先处理对象（folder|file），默认为folder，该参数解决极端场景同目录下文件夹与文件同名优先输出问题。
-    builder/priority	用来设置指定文件夹内文件输出优先次序,避免默认文件排序导致引用文件后加载引发异常的场景。
-    priority/path		需要调整顺序的文件夹，相对于thinbuilder内的文件夹路径。注意：不建议“/”开头、大小写敏感。
-    priority/files		需要调整顺序的文件，填写文件名即可（当前目录文件或子目录内文件），数组形式存储。注意：填写顺序、不建议“/”开头、大小写敏感。
-    minify			是否启用混淆/压缩，默认为false。
-    cachetime		设置脚本文件客户端缓存时间（秒），默认600秒。
+    - ```alias```：定义thinjs根目录名称，用来存放thinjs文件，默认根目录为thinbuilder。
     
-    ```
+      ```json
+      {
+          ...
+          "alias": "thinbuilder"
+          ...
+      }
+      ```
+    
+    - ```debug```：调试日志开关，开启后控制台打印编译过程日志信息，默认为false。
+    
+      ```json
+      {
+          ...
+          "debug": true
+          ...
+      }
+      ```
+    
+    
+    - ```minify```：启用脚本混淆/压缩开关，默认为false。
+    
+      ```json
+      {
+          ...
+          "minify": true
+          ...
+      }
+      ```
+    
+    - ```cachetime```：设置客户端缓存时间（秒），默认600秒。
+    
+      ```json
+      {
+          ...
+          "cachetime": 600
+          ...
+      }
+      ```
+    
+    - ```mode```：扫描模式，用来告诉编译器优先解析对象（folder|file），默认为folder。
+    
+      ```json
+      {
+          ...
+          "mode": "folder"
+          ...
+      }
+      ```
+    
+    - ```priority```：设置thinjs文件输出顺序（数组格式），默认编译顺序为文件名排序，该属性可以灵活调整thinjs文件加载顺序。[path]属性指定需要调整的文件夹路径，[files]属性指定优先输出的文件路径，支持子目录文件。
+    
+      注意：不建议“/”开头、字母大小写、文件路径填写顺序。
+    
+      ```json
+      {
+          ...
+          "priority": [
+              { 
+               "path": "test", 
+               "files": ["file2.js","subfolder/file1.js"] 
+              }
+          ]
+          ...
+      }
+      ```
+    
+      
+    
 
 ## Others
 
