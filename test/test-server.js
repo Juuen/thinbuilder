@@ -13,7 +13,7 @@ app.use(
             { path: "test/subtest/s2", files: ["s3/s3.js"] }
         ],
         mode: "folder",
-        debug: false,
+        debug: true,
         minify: true
     })
 );

@@ -129,7 +129,7 @@ function actions() {
 
     const pipe_file = function (p) {
         p.res.type(".js");
-        p.res.sendFile(path.join(__dirname, p.jspath), { maxAge: p.cachetime * 1000 }, (e) => {
+        p.res.sendFile(path.resolve(p.jspath), { maxAge: p.cachetime * 1000 }, (e) => {
             if (e && p.debug) console.error("[thinbuilder] file pipe: ", e);
             return p.mode === builderMode.file ? pipe_folder(p) : p.next();
         });
