@@ -56,9 +56,7 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "alias": "thinbuilder"
-          ...
       }
       ```
     
@@ -66,9 +64,7 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "debug": true
-          ...
       }
       ```
     
@@ -77,9 +73,7 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "minify": true
-          ...
       }
       ```
     
@@ -87,9 +81,7 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "cachetime": 600
-          ...
       }
       ```
     
@@ -97,9 +89,7 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "mode": "folder"
-          ...
       }
       ```
     
@@ -109,14 +99,12 @@ app.use(thinbuilder());
     
       ```json
       {
-          ...
           "priority": [
               { 
                "path": "test", 
                "files": ["file2.js","subfolder/file1.js"] 
               }
           ]
-          ...
       }
       ```
     
