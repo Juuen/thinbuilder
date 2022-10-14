@@ -121,9 +121,10 @@ function actions() {
         } catch (e) {
             if (e && p.debug) console.error("[thinbuilder] folder pipe: ", e);
             // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
-            fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
-                return err && p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
-            });
+            return p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
+            // fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
+            //     return err && p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
+            // });
         }
     };
 
