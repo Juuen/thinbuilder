@@ -112,8 +112,8 @@ function loadConfig(configfile, callback) {
  */
 function actions() {
     const pipe_folder = async function (p) {
-        let builderDir = p.jspath.replace(/\.js$/i, "");
         try {
+            let builderDir = p.jspath.replace(/\.js$/i, "");
             p.res.type(".js");
             p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
             await fileBuilder({ ...p, jspath: builderDir });
@@ -121,19 +121,20 @@ function actions() {
         } catch (e) {
             if (e && p.debug) console.error("[thinbuilder] folder pipe: ", e);
             // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
-            return p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
-            // fs.access(builderDir, fs.constants.F_OK | fs.constants.R_OK, (err) => {
-            //     return err && p.mode === builderMode.folder ? pipe_file(p) : p.res.end();
-            // });
+            return p.mode === builderMode.folder ? await pipe_file(p) : p.next();
         }
     };
 
-    const pipe_file = function (p) {
-        p.res.type(".js");
-        p.res.sendFile(path.resolve(p.jspath), { maxAge: p.cachetime * 1000 }, (e) => {
+    const pipe_file = async function (p) {
+        try {
+            p.res.type(".js");
+            p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
+            await outputContent({ ...p, fullname: path.resolve(p.jspath) });
+            return p.res.end();
+        } catch (e) {
             if (e && p.debug) console.error("[thinbuilder] file pipe: ", e);
-            return p.mode === builderMode.file ? pipe_folder(p) : p.next();
-        });
+            return p.mode === builderMode.file ? await pipe_folder(p) : p.next();
+        }
     };
 
     return new Map([
