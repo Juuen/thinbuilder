@@ -156,7 +156,7 @@ async function outputContent(p) {
     let data = (await readFile(p.fullname))?.toString() ?? "";
     if (!p.debug) data = dataPreCheck(data);
     if (p.minify) {
-        data = await minify(data, {}); // 参数待完善
+        data = await minify(data, { compress: { sequences: false } }); // 参数待完善
         data = data.code;
     }
     p.debug && p.res.write(`\n// ${p.fullname}\n`);
