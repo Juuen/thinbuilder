@@ -8,11 +8,11 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(
     thinbuilder({
         alias: "thinbuilder",
-        priority: [
-            { path: "/test", files: ["/subtest/subtest.js", "y.js", "w.js"] },
-            { path: "test/subtest/s2", files: ["s3/s3.js"] }
-        ],
-        mode: "file",
+        // priority: [
+        //     { path: "/test", files: ["/subtest/subtest.js", "y.js", "w.js"] },
+        //     { path: "test/subtest/s2", files: ["s3/s3.js"] }
+        // ],
+        mode: "folder",
         debug: true,
         minify: true
     })

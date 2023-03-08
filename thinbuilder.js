@@ -71,6 +71,8 @@ async function fileBuilder(p) {
     }
 
     // 正常输出文件
+    files.sort((a, b) => b.isFile() - a.isFile()); // 文件夹内文件优先于子文件夹输出
+
     for (const file of files) {
         if (file.isFile()) {
             let fullname = `${p.jspath}/${file.name}`;
@@ -156,7 +158,7 @@ async function outputContent(p) {
     let data = (await readFile(p.fullname))?.toString() ?? "";
     if (!p.debug) data = dataPreCheck(data);
     if (p.minify) {
-        data = await minify(data, { compress: { sequences: false } }); // 参数待完善
+        data = await minify(data, { compress: { sequences: false }, mangle: true }); // 参数待完善
         data = data.code;
     }
     p.debug && p.res.write(`\n// ${p.fullname}\n`);
