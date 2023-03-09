@@ -158,7 +158,7 @@ async function outputContent(p) {
     let data = (await readFile(p.fullname))?.toString() ?? "";
     if (!p.debug) data = dataPreCheck(data);
     if (p.minify) {
-        data = await minify(data, { compress: { sequences: false }, mangle: true }); // 参数待完善
+        data = await minify(data, { format: { comments: false }, compress: { drop_console: true, drop_debugger: true, sequences: false }, mangle: true }); // 参数待完善
         data = data.code;
     }
     p.debug && p.res.write(`\n// ${p.fullname}\n`);
@@ -172,8 +172,7 @@ async function outputContent(p) {
  */
 function dataPreCheck(d) {
     if (!d) return d;
-    d = d.replace(/\/\/.+|\/\*[\s\S]+?\*\//g, ""); // 移除注释
-    d = d.replace(/console\.log\([\s\S]*?\);?/g, ""); // 移除console.log | 但保留console.error
+    // d = d.replace(/console\.log\([\s\S]*?\);?/g, ""); // 移除console.log | 但保留console.error
     d = d.replace(/\r/g, ""); // 移除回车符
     d = d.replace(/\n{2,}/g, "\n"); // 合并换行符
     d = d.trim().concat("\n");
