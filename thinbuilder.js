@@ -16,13 +16,15 @@ module.exports = function (options) {
     // 加载THIN配置
     loadConfig("thin.config.json", (err, data) => {
         thinConfig = { ...options, ...data };
-        thinConfig.alias ||= "thinbuilder"; // 初始化thin文件夹名
-        thinConfig.debug ??= false; // 初始化调试开关
-        thinConfig.minify ??= false; // 初始化文件压缩开关
-        thinConfig.cachetime ??= 600; // 初始化缓存时间
-        thinConfig.compile ||= function () {
-            return thinbuilder;
-        };
+        thinConfig.alias = thinConfig.alias || "thinbuilder"; // 初始化thin文件夹名
+        thinConfig.debug = thinConfig.debug ?? false; // 初始化调试开关
+        thinConfig.minify = thinConfig.minify ?? false; // 初始化文件压缩开关
+        thinConfig.cachetime = thinConfig.cachetime ?? 600; // 初始化缓存时间
+        thinConfig.compile =
+            thinConfig.compile ||
+            function () {
+                return thinbuilder;
+            };
 
         if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
         if (err && thinConfig.debug) console.error("[thinbuilder] thinConfig loading: ", err);
