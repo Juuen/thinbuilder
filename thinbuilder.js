@@ -78,6 +78,7 @@ async function fileBuilder(p) {
     for (const file of files) {
         if (file.isFile()) {
             let fullname = `${p.jspath}/${file.name}`;
+            if (!fullname.endsWith(".js")) continue; // 仅输出JS文件
             if ([...new Set([...(preFolder[0]?.files || []), ...p.fileFilters])].some((item, index) => fullname.endsWith(item))) continue;
             await outputContent({ ...p, fullname });
         } else if (file.isDirectory()) {

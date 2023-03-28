@@ -14,7 +14,7 @@ app.use(
         // ],
         mode: "folder",
         debug: true,
-        minify: true
+        minify: false
     })
 );
 
