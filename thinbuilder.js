@@ -6,29 +6,28 @@ const { minify } = require("terser");
 
 /**
  *  thinbuilder
- * @param {Object} options
+ * @param {Object} options 配置参数
  * @return {Function}
  */
 module.exports = function (options) {
-    let thinConfig = {};
-    options ||= {};
+    let thinConfig = {},
+        defaultConfig = {
+            alias: "thinbuilder", // 初始化thin文件夹名
+            debug: false, // 初始化调试开关
+            minify: false, // 初始化文件压缩开关
+            cachetime: 600 // 初始化缓存时间
+        };
 
-    // 加载THIN配置
+    // 加载THIN配置，配置文件优先级最高
     loadConfig("thin.config.json", (err, data) => {
-        thinConfig = { ...options, ...data };
-        thinConfig.alias = thinConfig.alias || "thinbuilder"; // 初始化thin文件夹名
-        thinConfig.debug = thinConfig.debug ?? false; // 初始化调试开关
-        thinConfig.minify = thinConfig.minify ?? false; // 初始化文件压缩开关
-        thinConfig.cachetime = thinConfig.cachetime ?? 600; // 初始化缓存时间
-        thinConfig.compile =
-            thinConfig.compile ||
-            function () {
-                return thinbuilder;
-            };
+        thinConfig = { ...defaultConfig, ...options, ...data };
+        thinConfig.compile ||= function () {
+            return thinbuilder;
+        };
 
         if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
         if (err && thinConfig.debug) console.error("[thinbuilder] thinConfig loading: ", err);
-        console.log("[thinbuilder] thinbuilder is mounted.");
+        console.log("[thinbuilder] The thinbuilder has been successfully mounted.");
     });
 
     return function thinbuilder(req, res, next) {
@@ -91,8 +90,8 @@ async function fileBuilder(p) {
 
 /**
  * 加载配置文件
- * @param {String} configfile
- * @param {Function} callback
+ * @param {String} configfile 配置文件路径
+ * @param {Function} callback 回调函数
  */
 function loadConfig(configfile, callback) {
     let thinConfig = {},
@@ -101,12 +100,12 @@ function loadConfig(configfile, callback) {
     fs.access(configfile, fs.constants.F_OK | fs.constants.R_OK, async (err) => {
         if (!err) {
             try {
-                thinConfig = await readFile(configfile);
-                thinConfig = JSON.parse(thinConfig);
+                thinConfig = JSON.parse(await readFile(configfile));
             } catch (e) {
                 configErr = e;
             }
-        }
+        } else configErr = err;
+
         callback && callback(configErr, thinConfig ?? {});
     });
 }
