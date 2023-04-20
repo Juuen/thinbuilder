@@ -58,7 +58,7 @@ app.use(thinbuilder());
         }
         ```
 
-    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，默认为 false。
+    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，默认为 true；生产环境会强制禁用该选项。
 
         ```json
         {
@@ -107,6 +107,6 @@ app.use(thinbuilder());
 
 ## Others
 
-1. 我们推荐在项目根目录下使用 thinbuilder 作为 thinjs 脚本文件夹，当然早期的 jsbuilder 文件夹一样兼容。
+1. 我们推荐在项目根目录下使用 thinbuilder 作为 thinjs 根文件夹，当然早期的 jsbuilder 文件夹一样兼容。
 2. Node Version >= 15.0.0。
 3. 支持压缩/混淆功能。

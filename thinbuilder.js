@@ -10,13 +10,13 @@ const { minify } = require("terser");
  * @return {Function}
  */
 module.exports = function (options) {
-    let thinConfig = {},
-        defaultConfig = {
+    let defaultConfig = {
             alias: "thinbuilder", // 初始化thin文件夹名
-            debug: false, // 初始化调试开关
+            debug: true, // 初始化调试开关
             minify: false, // 初始化文件压缩开关
             cachetime: 600 // 初始化缓存时间
-        };
+        },
+        thinConfig = {};
 
     // 加载THIN配置，配置文件优先级最高
     loadConfig("thin.config.json", (err, data) => {
@@ -118,12 +118,11 @@ function actions() {
     const pipe_folder = async function (p) {
         try {
             let builderDir = p.jspath.replace(/\.js$/i, "");
-            p.res.type(".js");
-            p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
+            setHeaders(p);
             await fileBuilder({ ...p, jspath: builderDir });
             return p.res.end();
-        } catch (e) {
-            if (e && p.debug) console.error("[thinbuilder] folder pipe: ", e);
+        } catch (err) {
+            if (err && p.debug) console.error("[thinbuilder] folder pipe: ", err);
             // 此处逻辑是为了避免递归异常导致总是进入渲染单独文件管道
             return p.mode === builderMode.folder ? await pipe_file(p) : p.next();
         }
@@ -131,12 +130,11 @@ function actions() {
 
     const pipe_file = async function (p) {
         try {
-            p.res.type(".js");
-            p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
+            setHeaders(p);
             await outputContent({ ...p, fullname: path.resolve(p.jspath) });
             return p.res.end();
-        } catch (e) {
-            if (e && p.debug) console.error("[thinbuilder] file pipe: ", e);
+        } catch (err) {
+            if (err && p.debug) console.error("[thinbuilder] file pipe: ", err);
             return p.mode === builderMode.file ? await pipe_folder(p) : p.next();
         }
     };
@@ -174,10 +172,18 @@ async function outputContent(p) {
  */
 function dataPreCheck(d) {
     if (!d) return d;
-    // d = d.replace(/console\.log\([\s\S]*?\);?/g, ""); // 移除console.log | 但保留console.error
     d = d.replace(/\r/g, ""); // 移除回车符
     d = d.replace(/\n{2,}/g, "\n"); // 合并换行符
-    d = d.trim().concat("\n");
+    d = d.trim();
     d = d.endsWith(";") ? d : d.concat(";");
     return d;
+}
+
+/**
+ * 设置HTTP响应头
+ * @param {Object} p Builder参数集
+ */
+function setHeaders(p) {
+    p.res.type(".js");
+    p.res.set("Cache-Control", `public, max-age=${p.cachetime}`);
 }

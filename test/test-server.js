@@ -14,8 +14,8 @@ app.use(
         //     { path: "test/subtest/s2", files: ["s3/s3.js"] }
         // ],
         mode: "folder",
-        debug: true,
-        minify: false
+        minify: false,
+        debug: true
     })
 );
 
