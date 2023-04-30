@@ -87,7 +87,8 @@ async function fileBuilder(p) {
  */
 async function loadConfig(configfile) {
     try {
-        thinConfig = { ...thinConfig, ...(await readFile(configfile)) };
+        let config = await readFile(configfile);
+        thinConfig = { ...thinConfig, ...config };
     } catch (err) {
         err && thinConfig.debug && console.error("[thinbuilder] thinConfig loading: ", JSON.stringify(err));
     }
