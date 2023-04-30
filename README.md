@@ -33,7 +33,7 @@ app.use(thinbuilder());
     app.use(thinbuilder({alias:"thinbuilder",debug:true [,...params]}));
     ```
 
-2. **文件配置**
+2. **文件配置（推荐）**
 
     项目根目录下创建 `thin.config.json`文件，配置示例如下：
 
@@ -58,14 +58,6 @@ app.use(thinbuilder());
         }
         ```
 
-    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，默认为 true；生产环境会强制禁用该选项。
-
-        ```json
-        {
-            "debug": true
-        }
-        ```
-
     - `minify`：启用脚本混淆/压缩开关，默认为 false。
 
         ```json
@@ -79,6 +71,13 @@ app.use(thinbuilder());
         ```json
         {
             "cachetime": 600
+        }
+        ```
+    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，默认为 true；生产环境会强制禁用该选项。
+
+        ```json
+        {
+            "debug": true
         }
         ```
 

@@ -1,8 +1,16 @@
 "use strict";
-const fs = require("fs");
 const path = require("path");
 const { readdir, readFile } = require("fs/promises");
 const { minify } = require("terser");
+
+const CONFIG_FILE = "thin.config.json";
+const CONFIG_DEFAULT = {
+    alias: "thinbuilder", // 初始化thin文件夹名
+    debug: true, // 初始化调试开关
+    minify: false, // 初始化文件压缩开关
+    cachetime: 600 // 初始化缓存时间
+};
+var thinConfig = {};
 
 /**
  *  thinbuilder
@@ -10,26 +18,11 @@ const { minify } = require("terser");
  * @return {Function}
  */
 module.exports = function (options) {
-    let defaultConfig = {
-            alias: "thinbuilder", // 初始化thin文件夹名
-            debug: true, // 初始化调试开关
-            minify: false, // 初始化文件压缩开关
-            cachetime: 600 // 初始化缓存时间
-        },
-        thinConfig = {};
-
     // 加载THIN配置，配置文件优先级最高
-    loadConfig("thin.config.json", (err, data) => {
-        thinConfig = { ...defaultConfig, ...options, ...data };
-        thinConfig.compile ||= function () {
-            return thinbuilder;
-        };
+    thinConfig = { ...CONFIG_DEFAULT, ...options };
+    loadConfig(CONFIG_FILE);
 
-        if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
-        if (err && thinConfig.debug) console.error("[thinbuilder] thinConfig loading: ", err);
-        console.log("[thinbuilder] The thinbuilder has been successfully mounted.");
-    });
-
+    // 初始化中间件
     return function thinbuilder(req, res, next) {
         let jspath = req.path.substring(1);
         // 限定请求方式
@@ -91,23 +84,15 @@ async function fileBuilder(p) {
 /**
  * 加载配置文件
  * @param {String} configfile 配置文件路径
- * @param {Function} callback 回调函数
  */
-function loadConfig(configfile, callback) {
-    let thinConfig = {},
-        configErr;
-
-    fs.access(configfile, fs.constants.F_OK | fs.constants.R_OK, async (err) => {
-        if (!err) {
-            try {
-                thinConfig = JSON.parse(await readFile(configfile));
-            } catch (e) {
-                configErr = e;
-            }
-        } else configErr = err;
-
-        callback && callback(configErr, thinConfig ?? {});
-    });
+async function loadConfig(configfile) {
+    try {
+        thinConfig = { ...thinConfig, ...(await readFile(configfile)) };
+    } catch (err) {
+        err && thinConfig.debug && console.error("[thinbuilder] thinConfig loading: ", JSON.stringify(err));
+    }
+    if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
+    console.log("[thinbuilder] The thinbuilder has been successfully mounted.");
 }
 
 /**

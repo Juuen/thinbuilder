@@ -9,10 +9,6 @@ app.use(
     // thinbuilder()
     thinbuilder({
         alias: "thinbuilder",
-        // priority: [
-        //     { path: "/test", files: ["/subtest/subtest.js", "y.js", "w.js"] },
-        //     { path: "test/subtest/s2", files: ["s3/s3.js"] }
-        // ],
         mode: "folder",
         minify: false,
         debug: true
