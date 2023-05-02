@@ -10,8 +10,7 @@ app.use(
     thinbuilder({
         alias: "thinbuilder",
         mode: "folder",
-        minify: false,
-        debug: true
+        debug: false
     })
 );
 

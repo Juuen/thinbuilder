@@ -58,7 +58,7 @@ app.use(thinbuilder());
         }
         ```
 
-    - `minify`：启用脚本混淆/压缩开关，默认为 false。
+    - `minify`：启用脚本混淆/压缩开关，未配置时将会根据环境变量设定初始值（production为true，其他为false）。
 
         ```json
         {
@@ -73,7 +73,7 @@ app.use(thinbuilder());
             "cachetime": 600
         }
         ```
-    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，默认为 true；生产环境会强制禁用该选项。
+    - `debug`：调试日志开关，开启后控制台打印编译过程日志信息，未配置时将会根据环境变量设定初始值（production为false，其他为true）。
 
         ```json
         {

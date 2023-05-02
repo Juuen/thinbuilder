@@ -6,8 +6,6 @@ const { minify } = require("terser");
 const CONFIG_FILE = "thin.config.json";
 const CONFIG_DEFAULT = {
     alias: "thinbuilder", // 初始化thin文件夹名
-    debug: true, // 初始化调试开关
-    minify: false, // 初始化文件压缩开关
     cachetime: 600 // 初始化缓存时间
 };
 var thinConfig = {};
@@ -89,10 +87,12 @@ async function loadConfig(configfile) {
     try {
         let config = JSON.parse(await readFile(configfile));
         thinConfig = { ...thinConfig, ...config };
-    } catch (err) {
-        err && thinConfig.debug && console.error("[thinbuilder] thinConfig loading: ", JSON.stringify(err));
-    }
-    if (process.env.NODE_ENV === "production") thinConfig.debug = false; // 生产环境强制禁用调试日志开关
+    } catch (err) {}
+
+    // 未配置时,根据环境变量设定初始值
+    thinConfig.debug ??= process.env.NODE_ENV === "production" ? false : true;
+    thinConfig.minify ??= process.env.NODE_ENV === "production" ? true : false;
+
     console.log("[thinbuilder] The thinbuilder has been successfully mounted.");
 }
 
@@ -137,7 +137,7 @@ const builderMode = Object.freeze({
 });
 
 /**
- * 向浏览器输出脚本文件内容
+ * 向浏览器输出THINJS
  * @param {Object} p
  */
 async function outputContent(p) {

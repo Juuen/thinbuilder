@@ -1,6 +1,6 @@
 {
     "name": "thinbuilder",
-    "version": "2.1.22",
+    "version": "2.1.24",
     "description": "A scripts builder middleware for thinjs",
     "keywords": [
         "thinjs",
