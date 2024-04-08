@@ -1,33 +1,33 @@
 {
-    "name": "thinbuilder",
-    "version": "2.1.24",
-    "description": "A scripts builder middleware for thinjs",
-    "keywords": [
-        "thinjs",
-        "node",
-        "express",
-        "thinbuilder",
-        "javascript"
-    ],
-    "main": "thinbuilder.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Juuen",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/Juuen/thinbuilder.git"
-    },
-    "bugs": {
-        "url": "https://github.com/Juuen/thinbuilder/issues"
-    },
-    "homepage": "https://github.com/Juuen/thinbuilder#readme",
-    "engines": {
-        "node": ">=15.0.0"
-    },
-    "dependencies": {
-        "express": "^4.18.2",
-        "terser": "^5.17.1"
-    }
+	"name": "thinbuilder",
+	"version": "2.2.0",
+	"description": "A scripts builder middleware for thinjs",
+	"keywords": [
+		"thinjs",
+		"node",
+		"express",
+		"thinbuilder",
+		"javascript"
+	],
+	"main": "thinbuilder.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Juuen",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Juuen/thinbuilder.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Juuen/thinbuilder/issues"
+	},
+	"homepage": "https://github.com/Juuen/thinbuilder#readme",
+	"engines": {
+		"node": ">=15.0.0"
+	},
+	"dependencies": {
+		"express": "^4.18.2",
+		"terser": "^5.17.1"
+	}
 }
